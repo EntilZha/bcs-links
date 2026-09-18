@@ -1,0 +1,9 @@
+dist/
+.astro/
+node_modules/
+.pixi/
+test-results/
+playwright-report/
+.DS_Store
+.claude/settings.local.json
+.cache/

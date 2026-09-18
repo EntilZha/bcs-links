@@ -1,0 +1,49 @@
+---
+import { Image } from "astro:assets";
+import { ART, type Art, type ArtId } from "../art/registry";
+import { PAINTS } from "../art/paint";
+import { nextUid } from "../art/uid";
+import { SILHOUETTES } from "./silhouettes";
+
+interface Props {
+  bird: ArtId;
+  class?: string;
+}
+const { bird, class: className } = Astro.props;
+// Widened on purpose: today every entry is "painted", but artists will add "image" ones.
+const art = ART[bird] as Art;
+
+let painted: { viewBox: string; w: number; h: number; inner: string; underlay: string; layers: string; overlay: string; uid: string } | null = null;
+if (art.kind === "painted") {
+  const paint = PAINTS[art.paint];
+  const sil = SILHOUETTES[paint.silhouette];
+  const [, , w, h] = sil.viewBox.split(" ").map(Number);
+  painted = {
+    viewBox: sil.viewBox,
+    w,
+    h,
+    inner: sil.inner,
+    underlay: ("underlay" in paint ? paint.underlay : "") ?? "",
+    layers: paint.layers,
+    overlay: ("overlay" in paint ? paint.overlay : "") ?? "",
+    uid: nextUid(bird),
+  };
+}
+---
+
+{
+  painted ? (
+    <svg viewBox={painted.viewBox} class={className} aria-hidden="true" focusable="false">
+      <defs>
+        <mask id={painted.uid} maskUnits="userSpaceOnUse" x="0" y="0" width={painted.w} height={painted.h}>
+          <g fill="#fff" color="#fff" set:html={painted.inner} />
+        </mask>
+      </defs>
+      <g set:html={painted.underlay} />
+      <g mask={`url(#${painted.uid})`} set:html={painted.layers} />
+      <g set:html={painted.overlay} />
+    </svg>
+  ) : art.kind === "image" ? (
+    <Image src={art.src} alt="" width={160} class:list={[className, "object-contain"]} aria-hidden="true" />
+  ) : null
+}

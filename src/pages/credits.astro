@@ -1,0 +1,109 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Bird from "../components/Bird.astro";
+import Silhouette from "../components/Silhouette.astro";
+import { ART, type Art, type ArtId } from "../art/registry";
+import { PAINTS } from "../art/paint";
+import { SILHOUETTES, type SilhouetteId } from "../components/silhouettes";
+
+const licenseName = (url: string) =>
+  url.includes("/publicdomain/zero/")
+    ? "CC0 (public domain)"
+    : url.includes("/publicdomain/mark/")
+      ? "Public domain"
+      : `CC BY ${url.match(/by\/(\d\.\d)/)?.[1] ?? ""}`.trim();
+
+interface Row {
+  key: string;
+  name: string;
+  art: { bird: ArtId } | { silhouette: SilhouetteId };
+  artist: string;
+  license: string;
+  licenseUrl?: string;
+  source?: string;
+  note?: string;
+}
+
+const rows: Row[] = (Object.entries(ART) as [ArtId, Art][]).map(([id, art]) => {
+  if (art.kind === "image") {
+    return { key: id, name: art.alt, art: { bird: id }, ...art.credit, note: undefined };
+  }
+  const sil = SILHOUETTES[PAINTS[art.paint].silhouette];
+  return {
+    key: id,
+    name: sil.name,
+    art: { bird: id },
+    artist: sil.attribution ?? "Unknown",
+    license: licenseName(sil.license),
+    licenseUrl: sil.license,
+    source: sil.source,
+    note: "Silhouette from PhyloPic; colours added for this site.",
+  };
+});
+
+// Silhouettes shown as plain shapes (the birds crossing the header).
+const painted = new Set<SilhouetteId>(Object.values(PAINTS).map((p) => p.silhouette));
+for (const [id, sil] of Object.entries(SILHOUETTES) as [SilhouetteId, (typeof SILHOUETTES)[SilhouetteId]][]) {
+  if (painted.has(id) && id !== "heron") continue;
+  rows.push({
+    key: `${id}-plain`,
+    name: sil.name,
+    art: { silhouette: id },
+    artist: sil.attribution ?? "Unknown",
+    license: licenseName(sil.license),
+    licenseUrl: sil.license,
+    source: sil.source,
+    note: "Silhouette from PhyloPic, shown unaltered.",
+  });
+}
+---
+
+<Layout title="Bird art credits — Birds Connect Seattle">
+  <main class="mx-auto max-w-2xl px-4 py-8">
+    <a href="/" class="inline-flex min-h-11 items-center font-semibold text-brand underline-offset-4 hover:underline">&larr; Back</a>
+    <h1 class="mt-2 text-2xl font-bold text-brand">Bird art credits</h1>
+    <p class="mt-2 text-ink-muted">
+      Every bird on this page was drawn by a person and shared under an open licence. Most are
+      silhouettes from <a href="https://www.phylopic.org/" class="text-brand underline">PhyloPic</a>,
+      with flat colour added inside the artist's outline. Where the outline is of a close relative
+      (PhyloPic has none of the bird itself), the name says so.
+    </p>
+    <ul class="mt-6 grid gap-3 sm:grid-cols-2">
+      {
+        rows.map((r) => (
+          <li class="flex gap-4 rounded-2xl bg-white p-4 ring-1 ring-sage/50">
+            <div class="grid size-24 shrink-0 place-items-center rounded-xl bg-cream p-2 text-brand">
+              {"bird" in r.art ? (
+                <Bird bird={r.art.bird} class="max-h-full w-full" />
+              ) : (
+                <Silhouette bird={r.art.silhouette} class="max-h-full w-full" />
+              )}
+            </div>
+            <div class="min-w-0 text-sm">
+              <p class="font-semibold text-ink">{r.name}</p>
+              <p class="text-ink-muted">
+                by {r.artist} ·{" "}
+                {r.licenseUrl ? (
+                  <a href={r.licenseUrl} class="underline">
+                    {r.license}
+                  </a>
+                ) : (
+                  r.license
+                )}
+              </p>
+              {r.note && <p class="mt-1 text-ink-muted">{r.note}</p>}
+              {r.source && (
+                <a href={r.source} class="mt-1 inline-block text-brand underline">
+                  Original
+                </a>
+              )}
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+    <p class="mt-8 text-sm text-ink-muted">
+      Are you an artist who'd like to contribute a bird? Get in touch with Birds Connect Seattle.
+    </p>
+  </main>
+</Layout>

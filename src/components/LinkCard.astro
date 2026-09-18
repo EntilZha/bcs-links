@@ -1,0 +1,86 @@
+---
+import type { LinkItem } from "../config/links";
+import { withReferral } from "../lib/referral";
+import Bird from "./Bird.astro";
+
+interface Props {
+  item: LinkItem;
+  /** position in the list, for the staggered arrival animation */
+  index: number;
+}
+const { item, index } = Astro.props;
+
+// Tagged at build time so the tags are there without JavaScript; the page script only
+// re-tags when the QR code carried a ?src=.
+const href = item.tracked ? withReferral(item.href) : item.href;
+
+const TONES = {
+  signup: {
+    card: "bg-pop text-brand shadow-lg shadow-brand/20 ring-1 ring-brand/10",
+    sub: "text-brand",
+    icon: "bg-white/70",
+  },
+  donate: {
+    card: "bg-brand text-white shadow-lg shadow-brand/30",
+    sub: "text-sage",
+    icon: "bg-white/90",
+  },
+  secondary: {
+    card: "bg-white text-ink shadow-sm ring-1 ring-sage/50 hover:ring-sage",
+    sub: "text-ink-muted",
+    icon: "bg-cream",
+  },
+};
+const tone = item.id === "signup" || item.id === "donate" ? TONES[item.id] : TONES.secondary;
+const primary = item.tier === "primary";
+---
+
+<a
+  href={href}
+  data-link={item.id}
+  data-tracked={item.tracked ? item.href : undefined}
+  style={`--i:${index}`}
+  class:list={[
+    "card group flex items-center gap-3 rounded-2xl transition-transform active:scale-[0.98]",
+    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-leaf",
+    primary ? "px-3 py-3 min-h-18 max-h-36 grow" : "px-3 py-2.5 min-h-15 max-h-30 grow",
+    tone.card,
+  ]}
+>
+  <span
+    class:list={[
+      "bird-icon grid shrink-0 place-items-center rounded-full",
+      "size-12",
+      tone.icon,
+    ]}
+  >
+    <Bird bird={item.bird} class="size-10" />
+  </span>
+  <span class="min-w-0 flex-1">
+    {
+      item.badge && (
+        <span class="mb-1 inline-block rounded-full bg-brand px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide text-pop">
+          {item.badge}
+        </span>
+      )
+    }
+    <!-- Primary text scales a touch with the screen so title and subtitle each stay on one
+         line on phones 375px and up; narrower screens wrap rather than clip. -->
+    <span class:list={["block font-bold leading-tight", primary ? "text-[clamp(1rem,4.3vw,1.125rem)]" : "text-base"]}>
+      {item.label}
+    </span>
+    <span class:list={["block leading-snug mt-0.5", primary ? "text-[clamp(0.8125rem,3.6vw,0.875rem)]" : "text-sm", tone.sub]}>{item.sublabel}</span>
+  </span>
+  <svg
+    viewBox="0 0 20 20"
+    class="size-4 shrink-0 opacity-70 transition-transform group-hover:translate-x-0.5"
+    aria-hidden="true"
+    ><path
+      d="M7.5 4.5 13 10l-5.5 5.5"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.2"
+      stroke-linecap="round"
+      stroke-linejoin="round"></path></svg
+  >
+</a>

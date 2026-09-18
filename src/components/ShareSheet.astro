@@ -1,0 +1,131 @@
+---
+/**
+ * "Pass it on": a full-screen QR code of this page, so one person's phone can stand in for
+ * the printed tag when it has wandered off down the line. The QR library is only fetched
+ * when the sheet is opened, keeping it off the first load.
+ */
+---
+
+<button
+  type="button"
+  id="share-open"
+  aria-label="Share via QR code"
+  class="flex min-h-13 items-center gap-2 rounded-full border-2 border-brand/20 bg-white px-4 text-sm font-semibold text-brand shadow-sm transition hover:border-brand active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-leaf"
+>
+  <svg viewBox="0 0 24 24" class="size-5" aria-hidden="true" fill="currentColor">
+    <path d="M3 3h8v8H3Zm2 2v4h4V5Zm8-2h8v8h-8Zm2 2v4h4V5ZM3 13h8v8H3Zm2 2v4h4v-4Zm8-2h2v2h-2Zm2 2h2v2h-2Zm-2 2h2v2h-2Zm4 0h2v4h-4v-2h2Zm2-4h2v2h-2Zm-2 6h2v2h-2Z"></path>
+  </svg>
+  Share
+</button>
+
+<dialog
+  id="share-sheet"
+  aria-labelledby="share-title"
+  class="m-auto w-[min(26rem,calc(100vw-2rem))] rounded-3xl bg-cream p-0 text-ink shadow-2xl"
+>
+  <div class="flex flex-col items-center gap-4 p-6 text-center">
+    <h2 id="share-title" class="text-xl font-bold text-brand">Scan to join the flock</h2>
+    <div
+      id="share-qr"
+      class="grid aspect-square w-full max-w-72 place-items-center rounded-2xl bg-white p-4 ring-1 ring-sage/60"
+    >
+      <span class="text-sm text-ink-muted">Drawing QR code…</span>
+    </div>
+    <p id="share-url" class="break-all font-mono text-sm text-ink-muted"></p>
+    <div class="flex w-full flex-col gap-2">
+      <button
+        type="button"
+        id="share-native"
+        hidden
+        class="min-h-12 rounded-full bg-brand px-5 font-semibold text-white transition active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-leaf"
+      >
+        Share link…
+      </button>
+      <button
+        type="button"
+        id="share-copy"
+        class="min-h-12 rounded-full bg-white px-5 font-semibold text-brand ring-1 ring-sage transition active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-leaf"
+      >
+        Copy link
+      </button>
+      <button
+        type="button"
+        id="share-close"
+        class="min-h-12 rounded-full px-5 font-semibold text-ink-muted underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-leaf"
+      >
+        Close
+      </button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  import { sanitizeSrc } from "../lib/referral";
+
+  const openBtn = document.getElementById("share-open") as HTMLButtonElement;
+  const sheet = document.getElementById("share-sheet") as HTMLDialogElement;
+  const qrBox = document.getElementById("share-qr") as HTMLDivElement;
+  const urlText = document.getElementById("share-url") as HTMLParagraphElement;
+  const nativeBtn = document.getElementById("share-native") as HTMLButtonElement;
+  const copyBtn = document.getElementById("share-copy") as HTMLButtonElement;
+  const closeBtn = document.getElementById("share-close") as HTMLButtonElement;
+
+  // Share the page itself, keeping the event tag (so a passed-on phone still counts for
+  // the same walk) and dropping anything else that happened to be in the address bar.
+  function shareUrl(): string {
+    const src = sanitizeSrc(new URLSearchParams(location.search).get("src"));
+    const url = new URL("/", location.origin);
+    if (src) url.searchParams.set("src", src);
+    return url.toString();
+  }
+
+  let rendered = "";
+  async function renderQr(url: string) {
+    if (rendered === url) return;
+    const QRCode = await import("qrcode");
+    qrBox.innerHTML = await QRCode.toString(url, {
+      type: "svg",
+      margin: 1,
+      errorCorrectionLevel: "M",
+      color: { dark: "#0a3c23", light: "#ffffff" },
+    });
+    const svg = qrBox.querySelector("svg");
+    svg?.setAttribute("role", "img");
+    svg?.setAttribute("aria-label", `QR code for ${url}`);
+    svg?.classList.add("w-full", "h-full");
+    rendered = url;
+  }
+
+  if (typeof navigator.share === "function") nativeBtn.hidden = false;
+
+  openBtn.addEventListener("click", () => {
+    const url = shareUrl();
+    urlText.textContent = url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    sheet.showModal();
+    renderQr(url).catch(() => {
+      qrBox.textContent = "Couldn't draw the QR code — use the link below.";
+    });
+  });
+
+  nativeBtn.addEventListener("click", () => {
+    navigator
+      .share({ title: "Birds Connect Seattle", text: "Sign in, donate, and find more bird walks", url: shareUrl() })
+      .catch(() => {}); // dismissed share sheet
+  });
+
+  copyBtn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl());
+      copyBtn.textContent = "Copied!";
+    } catch {
+      copyBtn.textContent = "Couldn't copy — long-press the link above";
+    }
+    setTimeout(() => (copyBtn.textContent = "Copy link"), 2500);
+  });
+
+  closeBtn.addEventListener("click", () => sheet.close());
+  // Tapping the dimmed backdrop closes it too, as people expect from a phone sheet.
+  sheet.addEventListener("click", (e) => {
+    if (e.target === sheet) sheet.close();
+  });
+</script>

@@ -1,0 +1,62 @@
+[workspace]
+name = "bcs-linktree"
+description = "Birds Connect Seattle link hub — the one page the walk QR codes point at"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "linux-64"]
+
+# Node is pinned here so the Astro site runs against a known runtime; the JS packages
+# themselves are still managed by npm via package.json.
+[dependencies]
+nodejs = ">=22.12"
+
+[tasks.install]
+cmd = "npm install"
+description = "Install the site's npm dependencies"
+
+[tasks.dev]
+cmd = "npm run dev"
+description = "Run the Astro dev server at http://localhost:4321/"
+
+[tasks.dev-lan]
+cmd = "npm run dev -- --host"
+description = "Run the dev server on the LAN so a phone on the same wifi can open it"
+
+[tasks.build]
+cmd = "npm run build"
+description = "Build the static site to dist/"
+
+[tasks.preview]
+cmd = "npm run preview"
+description = "Preview the production build"
+
+[tasks.check]
+cmd = "npm run check"
+description = "Type-check the site with astro check"
+
+[tasks.test]
+cmd = "npm run test"
+description = "Run the Vitest suite over src/lib/"
+
+[tasks.test-e2e]
+cmd = "npm run test:e2e"
+description = "Run the Playwright phone-sized browser suite against a production build"
+
+[tasks.install-browsers]
+cmd = "npx playwright install chromium webkit"
+description = "Download the browsers the Playwright suite drives"
+
+[tasks.test-all]
+depends-on = ["check", "test", "test-e2e"]
+description = "Type-check, unit tests, then browser tests"
+
+[tasks.mobile]
+cmd = "node scripts/mobile-preview.mjs"
+description = "Open the running dev server in a visible iPhone-emulated browser window"
+
+[tasks.silhouettes]
+cmd = "node scripts/fetch-silhouettes.mjs"
+description = "Re-vendor the PhyloPic bird silhouettes into src/components/silhouettes.ts"
+
+[tasks.silhouette-gallery]
+cmd = "node scripts/silhouette-gallery.mjs"
+description = "Build and open a browsable sheet of reuse-friendly PhyloPic bird silhouettes"

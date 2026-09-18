@@ -1,0 +1,20 @@
+---
+import { SILHOUETTES, type SilhouetteId } from "./silhouettes";
+
+interface Props {
+  bird: SilhouetteId;
+  class?: string;
+  "class:list"?: unknown;
+}
+const { bird, class: className, "class:list": classList } = Astro.props;
+const s = SILHOUETTES[bird];
+---
+
+<svg
+  viewBox={s.viewBox}
+  class:list={[className, classList]}
+  fill="currentColor"
+  aria-hidden="true"
+  focusable="false"
+  set:html={s.inner}
+/>

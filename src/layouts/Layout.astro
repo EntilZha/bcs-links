@@ -1,0 +1,35 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+const {
+  title = "Birds Connect Seattle — walk links",
+  description = "Sign in for today's bird walk, donate, and find more ways to go birding with Birds Connect Seattle.",
+} = Astro.props;
+const canonical = new URL("/", Astro.site).toString();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content={description} />
+    <!-- Paints the phone's browser bar in brand green, so the header runs edge to edge. -->
+    <meta name="theme-color" content="#0a3c23" />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/png" href="/bcs-favicon.png" />
+    <link rel="apple-touch-icon" href="/bcs-favicon.png" />
+    <meta property="og:title" content="Birds Connect Seattle" />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:type" content="website" />
+    <title>{title}</title>
+  </head>
+  <body class="flex min-h-dvh flex-col antialiased">
+    <slot />
+  </body>
+</html>
