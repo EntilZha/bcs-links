@@ -1,0 +1,125 @@
+---
+import Layout from "../layouts/Layout.astro";
+import LinkCard from "../components/LinkCard.astro";
+import SocialRow from "../components/SocialRow.astro";
+import ShareSheet from "../components/ShareSheet.astro";
+import Silhouette from "../components/Silhouette.astro";
+import { BCS_HOME, LINKS } from "../config/links";
+import type { SilhouetteId } from "../components/silhouettes";
+
+// Birds in the header sky. They all fly the same path at the same speed, spaced evenly
+// along it, so the gap between neighbours never changes and they can never overlap: with six
+// birds on a path two screens long they are a third of a screen apart (~130px on a phone,
+// the widest bird is 64px). Heights vary so it reads as a loose procession, not a queue.
+// `restLeft` is where a bird sits when the phone asks for reduced motion; only the `still`
+// ones are shown then, so the title isn't crowded.
+const SKY_SECONDS = 54;
+const SKY: { bird: SilhouetteId; width: string; top: string; opacity: number; flip?: boolean; still?: boolean; restLeft?: string }[] = [
+  { bird: "eagle", width: "w-16", top: "0.25rem", opacity: 0.2, still: true, restLeft: "62%" },
+  { bird: "swallow", width: "w-7", top: "1.9rem", opacity: 0.22 },
+  { bird: "osprey", width: "w-12", top: "0.4rem", opacity: 0.18 },
+  { bird: "heron", width: "w-14", top: "2rem", opacity: 0.15, still: true, restLeft: "8%" },
+  { bird: "crow", width: "w-9", top: "0.6rem", opacity: 0.2 },
+  { bird: "goose", width: "w-12", top: "2.3rem", opacity: 0.16, flip: true },
+];
+
+---
+
+<Layout>
+  <header class="relative overflow-hidden bg-brand pb-6 pt-[max(0.75rem,env(safe-area-inset-top))] text-white">
+    <!-- Local birds crossing the sky behind the title, evenly spaced so they never overlap. -->
+    <div class="pointer-events-none absolute inset-0 text-sage" aria-hidden="true">
+      {
+        SKY.map((b, i) => (
+          <span
+            class:list={["glide absolute left-0 block", !b.still && "motion-only"]}
+            style={`--rest-left:${b.restLeft ?? "0"};top:${b.top};opacity:${b.opacity};animation-duration:${SKY_SECONDS}s;animation-delay:-${((SKY_SECONDS * i) / SKY.length).toFixed(2)}s`}
+          >
+            <Silhouette bird={b.bird} class:list={[b.width, b.flip && "-scale-x-100"]} />
+          </span>
+        ))
+      }
+    </div>
+    <div class="relative mx-auto flex max-w-md items-center justify-center gap-3 px-5">
+      <img
+        src="/bcs-logo-white.png"
+        alt=""
+        width="40"
+        height="40"
+        class="size-10 shrink-0"
+      />
+      <h1 class="text-xl font-bold leading-tight">Birds Connect Seattle</h1>
+      <!-- A painted bird can perch here again: <Bird bird="downy" class="h-7 w-5 -rotate-40" />
+           (the Downy Woodpecker art is kept in src/art/ for that). -->
+    </div>
+    <!-- Soft hill line where the header meets the page. -->
+    <svg
+      viewBox="0 0 400 40"
+      preserveAspectRatio="none"
+      class="absolute inset-x-0 bottom-0 h-6 w-full text-cream"
+      aria-hidden="true"
+    >
+      <path d="M0 40 V22 Q60 4 130 18 T260 16 T400 10 V40 Z" fill="currentColor"></path>
+    </svg>
+  </header>
+
+  <main class="relative mx-auto flex w-full max-w-md flex-1 flex-col gap-3 px-4 pb-4 pt-1">
+    <!-- The cards grow into whatever height the phone has (up to a cap), so a tall screen is
+         filled rather than left with an empty band above the footer. -->
+    <nav aria-label="Main links" class="flex flex-1 flex-col justify-center gap-[clamp(0.75rem,2dvh,1.25rem)]">
+      {LINKS.map((item, i) => <LinkCard item={item} index={i} />)}
+    </nav>
+
+    <!-- Socials and the share button share one row, so the whole page fits one phone screen. -->
+    <div class="mt-2 flex items-center justify-center gap-3">
+      <SocialRow />
+      <ShareSheet />
+    </div>
+
+  </main>
+
+  <footer class="bg-sage/25 pb-[env(safe-area-inset-bottom)] text-sm">
+    <div class="mx-auto flex max-w-md items-center justify-center gap-x-2 px-4">
+      <a
+        href={BCS_HOME}
+        class="inline-flex min-h-11 items-center font-semibold text-brand underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-leaf"
+        >birdsconnectsea.org</a
+      >
+      <span aria-hidden="true" class="text-ink-muted">·</span>
+      <a
+        href="/credits/"
+        class="inline-flex min-h-11 items-center text-ink underline underline-offset-2 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-leaf"
+        >Art credits</a
+      >
+      <span aria-hidden="true" class="text-ink-muted">·</span>
+      <a
+        href="https://github.com/EntilZha/bcs-links"
+        class="inline-flex min-h-11 items-center text-ink underline underline-offset-2 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-leaf"
+        >Source code</a
+      >
+    </div>
+  </footer>
+</Layout>
+
+<script>
+  import { eventTag, fetchActiveEvent } from "../lib/activeEvent";
+  import { withReferral } from "../lib/referral";
+
+  // Links are tagged at build time with the defaults. Re-tag them for a specific walk or event:
+  //  1. a QR tag printed for one place can point at /?src=<name>, which always wins;
+  //  2. otherwise, whichever NextGen event is on right now in the BCS calendar.
+  function retag(tag: string) {
+    document.querySelectorAll<HTMLAnchorElement>("a[data-tracked]").forEach((a) => {
+      a.href = withReferral(a.dataset.tracked!, tag);
+    });
+  }
+
+  const src = new URLSearchParams(location.search).get("src");
+  if (src) {
+    retag(src);
+  } else {
+    fetchActiveEvent().then((event) => {
+      if (event) retag(eventTag(event));
+    });
+  }
+</script>

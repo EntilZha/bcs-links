@@ -23,7 +23,7 @@ function tockifyEvent(title: string, startMs: number, endMs: number) {
 const TRACKED = ["signup", "donate", "owls"];
 
 test("every link is on screen and the sign-up comes first", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/links/");
   const cards = page.locator("a.card");
   await expect(cards).toHaveCount(4);
   await expect(cards.first()).toHaveAttribute("data-link", "signup");
@@ -34,13 +34,13 @@ test("every link is on screen and the sign-up comes first", async ({ page }) => 
 });
 
 test("the sign-up and donate buttons are above the fold", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/links/");
   await expect(page.locator('a[data-link="signup"]')).toBeInViewport({ ratio: 1 });
   await expect(page.locator('a[data-link="donate"]')).toBeInViewport({ ratio: 1 });
 });
 
 test("sign-up and donate titles and subtitles each fit on one line", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/links/");
   for (const id of ["signup", "donate"]) {
     const lines = await page.locator(`a[data-link="${id}"] span.min-w-0 > span`).evaluateAll((els) =>
       els.map((el) => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight))),
@@ -50,20 +50,20 @@ test("sign-up and donate titles and subtitles each fit on one line", async ({ pa
 });
 
 test("the socials are on the first screen too", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/links/");
   for (const id of ["instagram", "facebook", "youtube"]) {
     await expect(page.locator(`a[data-link="${id}"]`)).toBeInViewport({ ratio: 1 });
   }
 });
 
 test("the whole page fits on one screen", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/links/");
   const [height, viewport] = await page.evaluate(() => [document.documentElement.scrollHeight, innerHeight]);
   expect(height).toBeLessThanOrEqual(viewport);
 });
 
 test("the page fills the screen instead of leaving an empty band", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/links/");
   const gap = await page.evaluate(() => {
     const row = document.getElementById("share-open")!.getBoundingClientRect();
     const footer = document.querySelector("footer")!.getBoundingClientRect();
@@ -76,7 +76,7 @@ test.describe("header sky", () => {
   test.use({ reducedMotion: "no-preference" });
 
   test("the birds crossing the header never overlap", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/links/");
     const overlaps = await page.evaluate(() => {
       const birds = [...document.querySelectorAll<HTMLElement>("header .glide")];
       const anims = document.getAnimations().filter((a) => (a as CSSAnimation).animationName === "glide");
@@ -101,7 +101,7 @@ test.describe("header sky", () => {
 });
 
 test("no horizontal scrolling at phone width", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/links/");
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
@@ -109,7 +109,7 @@ test("no horizontal scrolling at phone width", async ({ page }) => {
 });
 
 test("tracked links carry the default referral tag", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/links/");
   for (const id of TRACKED) {
     const href = await page.locator(`a[data-link="${id}"]`).getAttribute("href");
     const url = new URL(href!);
@@ -123,7 +123,7 @@ test("tracked links carry the default referral tag", async ({ page }) => {
 });
 
 test("?src= is carried into the tracked links", async ({ page }) => {
-  await page.goto("/?src=Discovery Park");
+  await page.goto("/links/?src=Discovery Park");
   const href = await page.locator('a[data-link="donate"]').getAttribute("href");
   const url = new URL(href!);
   expect(url.pathname).toBe("/donate/");
@@ -143,7 +143,7 @@ test("a NextGen event on right now is carried into the tracked links", async ({ 
       },
     }),
   );
-  await page.goto("/");
+  await page.goto("/links/");
   const donate = page.locator('a[data-link="donate"]');
   await expect(donate).toHaveAttribute("href", /utm_campaign=\d{4}_\d{2}_\d{2}_carkeek_park_scope_and_sip/);
   const url = new URL((await donate.getAttribute("href"))!);
@@ -153,7 +153,7 @@ test("a NextGen event on right now is carried into the tracked links", async ({ 
 test("?src= wins over the calendar", async ({ page }) => {
   const now = Date.now();
   await page.route(TOCKIFY, (route) => route.fulfill({ json: { events: [tockifyEvent("Some walk", now - 60_000, now + 60_000)] } }));
-  await page.goto("/?src=magnuson");
+  await page.goto("/links/?src=magnuson");
   await page.waitForTimeout(300);
   const url = new URL((await page.locator('a[data-link="donate"]').getAttribute("href"))!);
   expect(url.searchParams.get("utm_campaign")).toBe("magnuson");
@@ -161,14 +161,14 @@ test("?src= wins over the calendar", async ({ page }) => {
 
 test("if the calendar is unreachable, the default tags stay", async ({ page }) => {
   await page.route(TOCKIFY, (route) => route.abort());
-  await page.goto("/");
+  await page.goto("/links/");
   await page.waitForTimeout(300);
   const url = new URL((await page.locator('a[data-link="donate"]').getAttribute("href"))!);
   expect(url.searchParams.get("utm_campaign")).toBe("nextgen_event");
 });
 
 test("the share sheet draws a QR code for this page", async ({ page }) => {
-  await page.goto("/?src=magnuson");
+  await page.goto("/links/?src=magnuson");
   await page.getByRole("button", { name: /Share via QR code/ }).click();
   const sheet = page.locator("#share-sheet");
   await expect(sheet).toBeVisible();
@@ -178,13 +178,13 @@ test("the share sheet draws a QR code for this page", async ({ page }) => {
 });
 
 test("no axe accessibility violations", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/links/");
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
 
 test("no axe violations with the share sheet open", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/links/");
   await page.getByRole("button", { name: /Share via QR code/ }).click();
   await expect(page.locator("#share-qr svg")).toBeVisible();
   const results = await new AxeBuilder({ page }).analyze();
@@ -201,4 +201,43 @@ test("credits page lists every bird with its artist and licence", async ({ page 
   await expect(page.getByText("Great Blue Heron").first()).toBeVisible();
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test.describe("the home page redirects to the walk sign-in", () => {
+  const SIGNUP = /secure\.birdsconnectsea\.org\/a\/nextgen-event-sign-and-waiver-form/;
+  // Answer the form request ourselves, so the suite never hits the live EveryAction form.
+  test.beforeEach(async ({ page }) => {
+    await page.route(SIGNUP, (route) => route.fulfill({ contentType: "text/html", body: "<title>form</title>" }));
+  });
+
+  test("with the default referral tag", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForURL(SIGNUP);
+    const url = new URL(page.url());
+    expect(url.searchParams.get("ms")).toBe("nextgen_linktree");
+    expect(url.searchParams.get("utm_campaign")).toBe("nextgen_event");
+  });
+
+  test("carrying ?src=", async ({ page }) => {
+    await page.goto("/?src=Discovery Park");
+    await page.waitForURL(SIGNUP);
+    expect(new URL(page.url()).searchParams.get("ms")).toBe("nextgen_linktree_discovery_park");
+  });
+
+  test("carrying the NextGen event on right now", async ({ page }) => {
+    const now = Date.now();
+    await page.route(TOCKIFY, (route) =>
+      route.fulfill({ json: { events: [tockifyEvent("Field Trip: Magnuson Park", now - 60_000, now + 60_000)] } }),
+    );
+    await page.goto("/");
+    await page.waitForURL(SIGNUP);
+    expect(new URL(page.url()).searchParams.get("utm_campaign")).toMatch(/^\d{4}_\d{2}_\d{2}_magnuson_park$/);
+  });
+
+  test("even if the calendar never answers", async ({ page }) => {
+    await page.route(TOCKIFY, () => {}); // left hanging
+    await page.goto("/");
+    await page.waitForURL(SIGNUP, { timeout: 5000 });
+    expect(new URL(page.url()).searchParams.get("utm_campaign")).toBe("nextgen_event");
+  });
 });

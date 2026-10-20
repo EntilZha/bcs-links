@@ -4,6 +4,10 @@ One mobile-first page of Birds Connect Seattle links: the page the 3D-printed wa
 point at, so the tags never need reprinting when links change. Sister site to
 `bcs-calendar` and `bcs-birdweb`, and shares their brand tokens.
 
+**`/` redirects straight to the walk sign-in/registration form** (with the referral tags
+below); the link hub itself lives at **`/links/`**. To undo the redirect, rename
+`src/pages/links.astro` back to `index.astro`.
+
 ```
 pixi run install     # npm dependencies
 pixi run dev         # http://localhost:4321/
